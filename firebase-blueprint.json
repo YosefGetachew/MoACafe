@@ -1,0 +1,31 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "A cafeteria order placed by a customer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "cafeteriaId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "items": { "type": "array" },
+        "total": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["cash", "telebirr", "cbebirr"] },
+        "deliveryOption": { "type": "string", "enum": ["pickup", "delivery"] },
+        "building": { "type": "string" },
+        "office": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Preparing", "Ready", "Completed", "Rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "settledAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "cafeteriaId", "customerName", "customerPhone", "items", "total", "paymentMethod", "deliveryOption", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Active and completed orders"
+    }
+  }
+}

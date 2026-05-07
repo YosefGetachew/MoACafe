@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation for Order entity
+    function isValidOrder(data) {
+      return data.keys().hasAll(['id', 'cafeteriaId', 'customerName', 'customerPhone', 'items', 'total', 'paymentMethod', 'deliveryOption', 'status', 'createdAt'])
+        && data.id is string && data.id.size() <= 100
+        && data.cafeteriaId is string && data.cafeteriaId.size() <= 50
+        && data.customerName is string && data.customerName.size() <= 100
+        && data.customerPhone is string && data.customerPhone.size() == 9
+        && data.items is list && data.items.size() > 0
+        && data.total is number && data.total >= 0
+        && data.paymentMethod in ['cash', 'telebirr', 'cbebirr']
+        && data.deliveryOption in ['pickup', 'delivery']
+        && data.status in ['Pending', 'Preparing', 'Ready', 'Completed', 'Rejected']
+        && data.createdAt is timestamp;
+    }
+
+    match /orders/{orderId} {
+      allow read: if true; // Customers need to see status, staff need to manage
+      
+      allow create: if isValidId(orderId) 
+        && isValidOrder(incoming())
+        && incoming().status == 'Pending'
+        && incoming().createdAt == request.time;
+
+      allow update: if (
+        // Staff action: Update status
+        isSignedIn() && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'settledAt'])
+          && incoming().status in ['Preparing', 'Ready', 'Completed', 'Rejected']
+        )
+      );
+
+      allow delete: if false;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
